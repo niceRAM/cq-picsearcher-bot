@@ -2,6 +2,44 @@
 
 ## 2021
 
+### 05-17 v2.28.4
+
+- 修复了可能出现 pm2 占用内存过多的问题
+- ⚠️本次更新前请在程序目录下执行 `npx pm2 delete CQPF`，不需要执行 `npm stop`，其他步骤相同
+
+### 05-16 v2.28.3
+
+- 修复“允许通过临时会话私聊发送”相关功能可能无效的问题
+
+### 05-16 v2.28.2
+
+- 修复 pximg 反代服务启动问题
+- pximg 反代服务默认只在本地(`127.0.0.1`)监听，如有需要请更改 `bot.setu.pximgServerHost`
+- 配置项变更
+  - A `bot.setu.pximgServerHost`
+
+### 05-16 v2.28.1
+
+- 修复 `bot.setu.shortenPximgProxy` 默认值
+
+### 05-16 v2.28.0
+
+- [#175](../../pull/175) by @niceRAM
+  - 允许通过临时会话私聊发送搜图结果
+  - 可配置 r18 setu 仅通过私聊发送（默认开启，如不需要请修改配置）
+  - 允许 r18 setu 通过临时会话私聊发送
+  - 发送 setu 链接时可以追加若干个原图镜像链接
+  - 可配置对原图镜像链接做短链接处理（增加 oy.mk 短链接服务 by @Quan666）
+- pximg 反代服务默认使用随机可用端口号（老用户可手动将 `bot.setu.pximgServerPort` 设置为 `0`）
+- 配置项变更
+  - M `bot.setu.pximgServerPort` 默认值 `60233` -> `0`
+  - A `bot.pmSearchResultTemp`
+  - A `bot.setu.sendPximgProxys`
+  - A `bot.setu.shortenPximgProxy`
+  - A `bot.setu.r18OnlyUrl`
+  - A `bot.setu.r18OnlyPrivate`
+  - A `bot.setu.r18OnlyPrivateAllowTemp`
+
 ### 05-12 v2.27.1
 
 - 使用方舟公招计算器将不再需要自行安装字体

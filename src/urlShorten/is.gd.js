@@ -1,4 +1,3 @@
-import { URL } from 'url';
 const Axios = require('../axiosProxy');
 
 /**
@@ -14,7 +13,6 @@ async function shorten(url) {
       const result = r.data;
       return {
         result,
-        path: new URL(result).pathname,
         error: false,
       };
     })
