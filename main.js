@@ -7,7 +7,7 @@ import whatanime from './src/whatanime';
 import ascii2d from './src/ascii2d';
 import CQ from './src/CQcode';
 import psCache from './src/cache';
-import Logger from './src/Logger';
+import logger from './src/logger';
 import RandomSeed from 'random-seed';
 import sendSetu from './src/plugin/setu';
 import Akhr from './src/plugin/akhr';
@@ -25,7 +25,6 @@ import asyncMap from './src/utils/asyncMap';
 const ocr = require('./src/plugin/ocr');
 
 const bot = new CQWebSocket(global.config.cqws);
-const logger = new Logger();
 const rand = RandomSeed.create();
 
 // 全局变量
@@ -144,7 +143,7 @@ async function commonHandle(e, context) {
   if (context.user_id === bot._qq) return true;
 
   // 黑名单检测
-  if (Logger.checkBan(context.user_id, context.group_id)) return true;
+  if (logger.checkBan(context.user_id, context.group_id)) return true;
 
   // 语言库
   if (corpus(context)) return true;
@@ -167,14 +166,14 @@ async function commonHandle(e, context) {
     return true;
   }
 
-  // setu
-  if (global.config.bot.setu.enable) {
-    if (sendSetu(context, logger)) return true;
-  }
-
   // reminder
   if (global.config.bot.reminder.enable) {
     if (rmdHandler(context)) return true;
+  }
+
+  // setu
+  if (global.config.bot.setu.enable) {
+    if (sendSetu(context)) return true;
   }
 
   //  反哔哩哔哩小程序
@@ -226,11 +225,11 @@ function adminPrivateMsg(e, context) {
   // Ban
   const { 'ban-u': bu, 'ban-g': bg } = args;
   if (bu && typeof bu === 'number') {
-    Logger.ban('u', bu);
+    logger.ban('u', bu);
     replyMsg(context, `已封禁用户${bu}`);
   }
   if (bg && typeof bg === 'number') {
-    Logger.ban('g', bg);
+    logger.ban('g', bg);
     replyMsg(context, `已封禁群组${bg}`);
   }
 
@@ -444,7 +443,7 @@ async function searchImg(context, customDB = -1) {
   for (const img of imgs) {
     // 指令：获取图片链接
     if (args['get-url']) {
-      replyMsg(context, img.url.replace(/\/\d+\/+\d+-/, '/0/0-').replace(/\?.*$/, ''));
+      replyMsg(context, img.url);
       continue;
     }
 
@@ -481,6 +480,7 @@ async function searchImg(context, customDB = -1) {
     const Replier = searchingMap.getReplier(img, db);
     const needCacheMsgs = [];
     let success = true;
+    let hasSucc = false;
     let snLowAcc = false;
     let useAscii2d = args.a2d;
     let useWhatAnime = db === snDB.anime;
@@ -489,6 +489,7 @@ async function searchImg(context, customDB = -1) {
     if (!useAscii2d) {
       const snRes = await saucenao(img.url, db, args.debug || global.config.bot.debug);
       if (!snRes.success) success = false;
+      if (snRes.success) hasSucc = true;
       if (snRes.lowAcc) snLowAcc = true;
       if (
         !useWhatAnime &&
@@ -505,7 +506,7 @@ async function searchImg(context, customDB = -1) {
 
     // ascii2d
     if (useAscii2d) {
-      const { color, bovw, asErr } = await ascii2d(img.url, snLowAcc).catch(asErr => ({
+      const { color, bovw, success: asSuc, asErr } = await ascii2d(img.url, snLowAcc).catch(asErr => ({
         asErr,
       }));
       if (asErr) {
@@ -514,7 +515,8 @@ async function searchImg(context, customDB = -1) {
         console.error(`${global.getTime()} [error] ascii2d`);
         logError(asErr);
       } else {
-        success = true;
+        if (asSuc) hasSucc = true;
+        if (!asSuc) success = false;
         await Replier.reply(color, bovw);
         needCacheMsgs.push(color, bovw);
       }
@@ -523,12 +525,13 @@ async function searchImg(context, customDB = -1) {
     // 搜番
     if (useWhatAnime) {
       const waRet = await whatanime(img.url, args.debug || global.config.bot.debug);
+      if (waRet.success) hasSucc = true;
       if (!waRet.success) success = false; // 如果搜番有误也视作不成功
       await Replier.reply(...waRet.msgs);
       if (waRet.msgs.length > 0) needCacheMsgs.push(...waRet.msgs);
     }
 
-    if (success) logger.doneSearch(context.user_id);
+    if (hasSucc) logger.doneSearch(context.user_id);
     Replier.end();
 
     // 将需要缓存的信息写入数据库
@@ -568,8 +571,6 @@ function doAkhr(context) {
     const imgs = getImgs(msg);
 
     const handleWords = words => {
-      // fix some ...
-      if (global.config.bot.akhr.ocr === 'ocr.space') words = _.map(words, w => w.replace(/冫口了/g, '治疗'));
       replyMsg(context, CQ.img64(Akhr.getResultImg(words)));
     };
 
@@ -600,7 +601,7 @@ function getImgs(msg) {
   while (search) {
     result.push({
       file: CQ.unescape(search[1]),
-      url: CQ.unescape(search[2]),
+      url: getUniversalImgURL(CQ.unescape(search[2])),
     });
     search = reg.exec(msg);
   }
@@ -759,4 +760,11 @@ function parseArgs(str, enableArray = false, _key = null) {
 
 function debugMsgDeleteBase64Content(msg) {
   return msg.replace(/base64:\/\/[a-z\d+/=]+/gi, '(base64)');
+}
+
+function getUniversalImgURL(url) {
+  return url
+    .replace('/gchat.qpic.cn/gchatpic_new/', '/c2cpicdw.qpic.cn/offpic_new/')
+    .replace(/\/\d+\/+\d+-/, '/0/0-')
+    .replace(/\?.*$/, '');
 }

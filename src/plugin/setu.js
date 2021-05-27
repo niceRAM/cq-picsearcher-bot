@@ -6,6 +6,7 @@ import NamedRegExp from 'named-regexp-groups';
 import '../utils/jimp.plugin';
 import Jimp from 'jimp';
 import urlShorten from '../urlShorten';
+import logger from '../logger';
 const Axios = require('../axiosProxy');
 
 const zza = Buffer.from('aHR0cHM6Ly9hcGkubG9saWNvbi5hcHAvc2V0dS96aHV6aHUucGhw', 'base64').toString('utf8');
@@ -58,7 +59,7 @@ async function getAntiShieldingBase64(url) {
   return false;
 }
 
-function sendSetu(context, logger) {
+function sendSetu(context, at = true) {
   const setting = global.config.bot.setu;
   const replys = global.config.bot.replys;
   const proxy = setting.pximgProxy.trim();
@@ -98,7 +99,7 @@ function sendSetu(context, logger) {
     }
 
     if (!logger.canSearch(context.user_id, limit, 'setu')) {
-      global.replyMsg(context, replys.setuLimit, true);
+      global.replyMsg(context, replys.setuLimit, at);
       return true;
     }
 
@@ -111,30 +112,32 @@ function sendSetu(context, logger) {
       .then(async ret => {
         if (ret.code !== 0) {
           if (ret.code === 429) global.replyMsg(context, replys.setuQuotaExceeded || ret.error, true);
-          else global.replyMsg(context, ret.error, true);
+          else global.replyMsg(context, ret.error, at);
           return;
         }
 
         const urlMsgs = [`${ret.url} (p${ret.p})`];
-        if (setting.sendPximgProxys) {
+        if (setting.sendPximgProxys.length) {
           urlMsgs.push('原图镜像地址：');
           for (const imgProxy of setting.sendPximgProxys) {
-            const imgUrl = new URL(new URL(ret.file).pathname, imgProxy).href;
+            const imgUrl = getSetuUrlByTemplate(imgProxy, ret);
             urlMsgs.push((await urlShorten(setting.shortenPximgProxy, imgUrl)).result);
           }
         }
 
-        if (setting.r18OnlyUrl) {
-          global.replyMsg(context, urlMsgs.join('\n'), false, true);
+        if (
+          r18 &&
+          setting.r18OnlyUrl[
+            context.message_type === 'private' && context.sub_type !== 'friend' ? 'temp' : context.message_type
+          ]
+        ) {
+          global.replyMsg(context, urlMsgs.join('\n'), false, at);
           return;
         }
         if (privateR18) urlMsgs.push('※ 图片将私聊发送');
-        global.replyMsg(context, urlMsgs.join('\n'), true);
+        global.replyMsg(context, urlMsgs.join('\n'), at);
 
-        const url =
-          proxy === ''
-            ? getProxyURL(ret.file)
-            : new URL(/(?<=https:\/\/i.pximg.net\/).+/.exec(ret.file)[0], proxy).toString();
+        const url = proxy === '' ? getProxyURL(ret.file) : getSetuUrlByTemplate(proxy, ret);
 
         // 反和谐
         const base64 =
@@ -181,7 +184,7 @@ function sendSetu(context, logger) {
       .catch(e => {
         console.error(`${global.getTime()} [error]`);
         console.error(e);
-        global.replyMsg(context, replys.setuError, true);
+        global.replyMsg(context, replys.setuError, at);
       });
     return true;
   }
@@ -189,3 +192,9 @@ function sendSetu(context, logger) {
 }
 
 export default sendSetu;
+
+function getSetuUrlByTemplate(tpl, setu) {
+  const path = new URL(setu.file).pathname;
+  if (!/{{.+}}/.test(tpl)) return new URL(`.${path}`, tpl).href;
+  return _.template(tpl, { interpolate: /{{([\s\S]+?)}}/g })({ path, ..._.pick(setu, ['pid', 'p']) });
+}

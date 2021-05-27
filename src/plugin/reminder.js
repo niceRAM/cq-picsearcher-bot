@@ -6,6 +6,8 @@ import _ from 'lodash';
 import { setLargeTimeout, clearLargeTimeout } from '../utils/largeTimeout';
 import logError from '../logError';
 import event from '../event';
+import CQ from '../CQcode';
+import sendSetu from './setu';
 
 const rmdFile = Path.resolve(__dirname, '../../data/rmd.json');
 let rmd = null;
@@ -103,6 +105,19 @@ function start(tid, interval, item) {
                 });
             }
           });
+        } else if (
+          msg.startsWith('<setu>') &&
+          ctx.message_type === 'group' &&
+          ctx.user_id === global.config.bot.admin
+        ) {
+          if (!global.config.bot.setu.enable) return;
+          sendSetu(
+            {
+              ...ctx,
+              message: msg.replace(/^<setu>/, ''),
+            },
+            false
+          );
         } else global.replyMsg(ctx, msg);
       }
       start(tid, interval, item);
@@ -199,7 +214,7 @@ function add(ctx, args) {
   try {
     const interval = Parser.parseExpression(cron);
     const tid = rmd.next++;
-    const item = addRmd(type, rid, tid, ctx.user_id, args.rmd, cron, rctx);
+    const item = addRmd(type, rid, tid, ctx.user_id, args.origin ? CQ.unescape(args.rmd) : args.rmd, cron, rctx);
     start(tid, interval, item);
     global.replyMsg(ctx, `添加成功(ID=${tid})`, true);
   } catch (e) {

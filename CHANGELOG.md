@@ -2,6 +2,51 @@
 
 ## 2021
 
+### 05-27 v2.29.4
+
+- 修复群聊 saucenao 搜索结果异常的问题 ([#195](../../issues/195))
+- 修复部分情况下会缓存失败搜索结果的问题
+
+### 05-25 v2.29.3
+
+- 修复部分情况下可能出现文件不存在错误的问题（不影响程序正常运行）
+- whatanime 发送预览视频不再需要依赖 ffmpeg
+- 改进方舟公招计算器的识别逻辑
+- 默认 OCR 服务变更为为 qq
+- `bot.setu.pximgProxy` 和 `bot.setu.sendPximgProxys` 新增支持一些占位符
+- 配置项变更
+  - M `bot.ocr.use` 默认值 `"ocr.space"` -> `"qq"`
+  - M `bot.akhr.ocr` 默认值 `"ocr.space"` -> `"qq"`
+
+### 05-23 v2.29.2
+
+- 改进方舟公招计算器生成图片的效果 ([#193](../../issues/193))
+- 新增 `autoUpdateConfig` 配置，可自动按照 `config.default.json` 来更新 `config.json`
+- 配置项变更
+  - A `autoUpdateConfig`
+
+### 05-23 v2.29.1
+
+修复找不到模块问题，若先前更新过 v2.29.0，更新到最新版时请按以下步骤操作
+
+```bash
+git reset v2.29.0 --hard
+git pull # 可能会报错，不用管
+git reset v2.29.1 --hard
+git pull
+```
+
+### 05-23 v2.29.0
+
+- 修复了 `bot.setu.r18OnlyUrl` 导致非 r18 图也只发 url 的问题 ([#182](../../issues/182))
+- 更新了 trace.moe API，解决了无法发送预览视频的问题
+- `bot.setu.r18OnlyUrl` 分开群聊、私聊、临时会话（⚠️需要更新配置） ([#183](../../issues/183))
+- 定时提醒可通过添加 `--origin` 参数使内容不被 CQ 转义，见 [wiki](../../wiki/%E9%99%84%E5%8A%A0%E5%8A%9F%E8%83%BD#%E9%98%B2%E6%AD%A2-cq-%E8%BD%AC%E4%B9%89) ([#178](../../issues/178))
+- 可以使用 reminder 定时发送 setu，见 [wiki](../../wiki/%E9%99%84%E5%8A%A0%E5%8A%9F%E8%83%BD#setu-1) ([#174](../../issues/174))
+- 配置项变更
+  - M `bot.whatanimeHost` 默认值 `"trace.moe"` -> `"api.trace.moe"`（旧值在读取时会被自动替换为新值）
+  - M `bot.setu.r18OnlyUrl` 默认值 `false` -> `{ "private": false, "group": false, "temp": false }`，如先前修改为 `true` 请更新配置，否则会变为新默认值
+
 ### 05-19 v2.28.5
 
 - 修复了 `bot.setu.pximgServerHost` 设置无效的问题
