@@ -1,7 +1,9 @@
+import ctmdga from '../urlShorten/ctmd.ga';
 import oymk from '../urlShorten/oy.mk';
 import ywwuy from '../urlShorten/yww.uy';
 
 const SERVER_MAP = {
+  'ctmd.ga': ctmdga,
   'oy.mk': oymk,
   'yww.uy': ywwuy,
   none: url => ({

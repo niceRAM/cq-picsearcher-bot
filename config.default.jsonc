@@ -231,6 +231,7 @@
     // 语言库（自动回复），请查看“wiki-附加功能-语言库（自动回复）”以了解更多
     "corpus": []
   },
+  "ctmdgaApiKey": "",
   // saucenao 自定义 host，格式：[protocol://]host[:port]
   "saucenaoHost": "saucenao.com",
   // saucenao APIKEY，必填，否则无法使用 saucenao 搜图
