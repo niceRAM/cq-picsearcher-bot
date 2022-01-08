@@ -1,6 +1,37 @@
 # 更新日志
 
+## 2022
+
+### 01-08 v2.32.0
+
+- 悲报：ascii2d 因上了 CF，机器人请求可能会被 JS Challenge 拦截，目前没有找到解决方法，如频繁出现 403 错误请将 `bot.useAscii2dWhenQuotaExcess`, `bot.useAscii2dWhenLowAcc`, `bot.useAscii2dWhenFailed` 设为 `false`；如您有好的解决方案请前往 ([#283](../../issues/283)) 献言献策，谢谢
+- 增加自定义 canvas 库的能力，如本项目默认使用的 [@napi-rs/canvas](https://www.npmjs.com/package/@napi-rs/canvas) 出现异常，可切换至使用 [canvas](https://www.npmjs.com/package/canvas)，详情见 wiki
+- 配置项变更
+  - A `bot.canvasLibrary`
+
+### 01-03 v2.31.2
+
+- 修复可能因B站抽风而重复推送动态的问题 ([#281](../../issues/281))
+- 更新了一些依赖的版本
+
+### 01-01 v2.31.1
+
+- 新年快乐！
+- 改进了B站动态推送检测机制，减少漏动态问题
+- 新增支持解析类型为 2048 的B站动态
+
 ## 2021
+
+### 10-24 v2.31.0
+
+- 新增B站动态、直播推送功能
+- 新增 `npm run update` 脚本用于一键更新，会自动判断包管理器，如果目录中存在 `package-lock.json` 则使用 `npm`，否则使用 `yarn`
+- 新增管理者私聊指令 `--update-cqps` 用于远程一键更新，该更新方式是实验性的，建议在可以登上服务器的状态下使用，以免出现意外起不来（
+- 修复 go-cqhttp v1.0.0-beta8 及以上版本无法回复搜图的问题 by @Magic-Xin
+- 修复无法解析B站手机客户端分享的动态短链的问题
+- 配置项变更
+  - A `bot.replys.push`
+  - A `bot.replys.pushCheckInterval`
 
 ### 10-24 v2.30.3
 

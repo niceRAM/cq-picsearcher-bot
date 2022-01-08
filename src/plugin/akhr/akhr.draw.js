@@ -1,5 +1,4 @@
-import Path from 'path';
-import event from '../../event';
+import emitter from '../../emitter';
 
 /**
  * @type {import('@napi-rs/canvas')}
@@ -7,13 +6,10 @@ import event from '../../event';
 let Canvas = null;
 const loadCanvasModule = () => {
   if (global.config.bot.akhr.enable && !Canvas) {
-    Canvas = require('@napi-rs/canvas');
-    Canvas.GlobalFonts.registerFromPath(Path.resolve(__dirname, 'fonts/sarasa-gothic-sc-bold.ttf'), 'SarasaSC');
-    Canvas.GlobalFonts.registerFromPath(Path.resolve(__dirname, 'fonts/seguiemj.ttf'), 'SegoeUIEmoji');
+    Canvas = require('../../../libs/canvas');
   }
 };
-event.onceInit(loadCanvasModule);
-event.on('reload', loadCanvasModule);
+emitter.onConfigLoad(loadCanvasModule);
 
 const ratio = 2;
 const fullWidth = ratio * 600;
