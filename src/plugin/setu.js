@@ -68,6 +68,7 @@ function sendSetu(context, at = true) {
   const replys = global.config.bot.replys;
   const proxy = setting.pximgProxy.trim();
   const isGroupMsg = context.message_type === 'group';
+  const isGuildMsg = context.message_type === 'guild';
 
   // 普通
   const limit = {
@@ -77,7 +78,10 @@ function sendSetu(context, at = true) {
   let delTime = setting.deleteTime;
 
   const regGroup = setuRegExec.groups || {};
-  const r18 = regGroup.r18 && !(isGroupMsg && setting.r18OnlyInWhite && !setting.whiteGroup.includes(context.group_id));
+  const r18 =
+    regGroup.r18 && // 指令带 r18
+    !((isGroupMsg || isGuildMsg) && setting.r18OnlyInWhite && !setting.whiteGroup.includes(context.group_id)) && // 白名单 r18
+    !(isGuildMsg && !setting.r18AllowInGuild); // 频道 r18
   const keyword = regGroup.keyword ? regGroup.keyword.split('&') : undefined;
   const privateR18 = setting.r18OnlyPrivate && r18 && isGroupMsg;
 
@@ -113,28 +117,32 @@ function sendSetu(context, at = true) {
 
       const setu = ret.data[0];
       const setuUrl = setting.size1200 ? setu.urls.regular : setu.urls.original;
-      const urlMsgs = [`https://pixiv.net/i/${setu.pid} (p${setu.p})`];
-      if (setting.sendPximgProxys.length) {
-        const sendUrls = [];
-        for (const imgProxy of setting.sendPximgProxys) {
-          const imgUrl = getSetuUrlByTemplate(imgProxy, setu, setu.urls.original);
-          sendUrls.push((await urlShorten(setting.shortenPximgProxy, imgUrl)).result);
-        }
-        if (sendUrls.length === 1) urlMsgs.push(`原图地址：${sendUrls[0]}`);
-        else urlMsgs.push('原图地址：', ...sendUrls);
-      }
-
-      if (
+      const onlySendUrl =
         r18 &&
         setting.r18OnlyUrl[
           context.message_type === 'private' && context.sub_type !== 'friend' ? 'temp' : context.message_type
-        ]
-      ) {
-        global.replyMsg(context, urlMsgs.join('\n'), false, at);
+        ];
+      const preSendMsgs = [];
+
+      if (setting.sendUrls || onlySendUrl) {
+        preSendMsgs.push(`https://pixiv.net/i/${setu.pid} (p${setu.p})`);
+        if (setting.sendPximgProxys.length) {
+          const sendUrls = [];
+          for (const imgProxy of setting.sendPximgProxys) {
+            const imgUrl = getSetuUrlByTemplate(imgProxy, setu, setu.urls.original);
+            sendUrls.push((await urlShorten(setting.shortenPximgProxy, imgUrl)).result);
+          }
+          if (sendUrls.length === 1) preSendMsgs.push(`原图地址：${sendUrls[0]}`);
+          else preSendMsgs.push('原图地址：', ...sendUrls);
+        }
+      }
+
+      if (onlySendUrl) {
+        global.replyMsg(context, preSendMsgs.join('\n'), false, at);
         return;
       }
-      if (privateR18) urlMsgs.push('※ 图片将私聊发送');
-      global.replyMsg(context, urlMsgs.join('\n'), at);
+      if (privateR18) preSendMsgs.push('※ 图片将私聊发送');
+      global.replyMsg(context, preSendMsgs.join('\n'), at);
 
       const getReqUrl = url => (proxy ? getSetuUrlByTemplate(proxy, setu, url) : getLocalReverseProxyURL(url));
       const url = getReqUrl(setuUrl);

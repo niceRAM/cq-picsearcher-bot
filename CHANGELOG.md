@@ -2,9 +2,71 @@
 
 ## 2022
 
+### 03-12 v2.34.0
+
+- 修复哔哩哔哩解析可能使用非视频标题进行视频搜索的问题
+- setu 可以设置不发送链接 [#302](../../issues/302)
+- r18 setu 只发链接功能增加对频道的设置
+- 哔哩哔哩推送可以设置@全员，详见 wiki [#293](../../issues/293)
+- 配置项变更
+  - A `bot.setu.sendUrls`
+  - A `bot.setu.r18OnlyUrl.guild`
+  - A `bot.bilibili.push.*.*.dynamicAtAll`
+  - A `bot.bilibili.push.*.*.liveAtAll`
+
+### 03-05 v2.33.7
+
+- 哔哩哔哩解析支持结构化消息 [#300](../../issues/300)
+
+### 03-05 v2.33.6
+
+- 增加 `.npmrc` 默认启用 `legacy-peer-deps` 以解决 npm v7 以上可能出现 peer dependencies 冲突的问题
+- 明日方舟公招计算器增加“资深干员”和“高级资深干员”无法被识别时的处理提示
+
+### 02-26 v2.33.5
+
+- 修复还是没有完全修好的 ascii2d 无法使用的问题 [#283](../../issues/283)
+- 配置项变更
+  - A `bot.cfTLSVersion`
+
+### 02-26 v2.33.4
+
+- 修复没有完全修好的 ascii2d 无法使用的问题 [#283](../../issues/283)
+
+### 02-26 v2.33.3
+
+- 修复 ascii2d 无法使用的问题，感谢 @DiheChen [#283](../../issues/283)
+- `bot.useAscii2dWhenQuotaExcess`, `bot.useAscii2dWhenLowAcc`, `bot.useAscii2dWhenFailed` 的默认值变更回 `true`
+- 更新了一些依赖的版本
+
+### 02-18 v2.33.2
+
+- 修复部分参数在特定情况下无法正常解析的问题 ([#292](../../issues/292))
+
+### 02-13 v2.33.1
+
+- 在频道发送的 setu 无法撤回，是已知现象，go-cqhttp 尚未支持撤回频道消息 ([#290](../../issues/290))
+- 由于频道监管较严，默认禁止在频道请求 r18 setu ([#291](../../issues/291))
+- 配置项变更
+  - A `bot.setu.r18AllowInGuild`
+
+### 02-12 v2.33.0
+
+- 增加频道支持，详情请看 [wiki](../../wiki/%E9%A2%91%E9%81%93%E6%94%AF%E6%8C%81)
+- 检查更新改为使用 GitHub API，不再依赖 isomorphic-git
+- 由于 [#283](../../issues/283) 尚未解决，因此 `bot.useAscii2dWhenQuotaExcess`, `bot.useAscii2dWhenLowAcc`, `bot.useAscii2dWhenFailed` 的默认值更改为 `false`
+- 配置项变更
+  - A `bot.adminTinyId`
+  - A `bot.enableGuild`
+
+### 02-04 v2.32.1
+
+- 该版本无内容更新，仅为公告用途
+- 近期请勿启用 `bot.pmSearchResultTemp` 功能，通过 go-cqhttp 发送群临时会话很可能导致账号冻结，详情请关注 https://github.com/Mrs4s/go-cqhttp/issues/1338
+
 ### 01-08 v2.32.0
 
-- 悲报：ascii2d 因上了 CF，机器人请求可能会被 JS Challenge 拦截，目前没有找到解决方法，如频繁出现 403 错误请将 `bot.useAscii2dWhenQuotaExcess`, `bot.useAscii2dWhenLowAcc`, `bot.useAscii2dWhenFailed` 设为 `false`；如您有好的解决方案请前往 ([#283](../../issues/283)) 献言献策，谢谢
+- 悲报：ascii2d 因上了 CF，机器人请求可能会被 JS Challenge 拦截，目前没有找到解决方法，如频繁出现 403 错误请将 `bot.useAscii2dWhenQuotaExcess`, `bot.useAscii2dWhenLowAcc`, `bot.useAscii2dWhenFailed` 设为 `false`；如您有好的解决方案请前往 [#283](../../issues/283) 献言献策，谢谢
 - 增加自定义 canvas 库的能力，如本项目默认使用的 [@napi-rs/canvas](https://www.npmjs.com/package/@napi-rs/canvas) 出现异常，可切换至使用 [canvas](https://www.npmjs.com/package/canvas)，详情见 wiki
 - 配置项变更
   - A `bot.canvasLibrary`
