@@ -281,6 +281,7 @@ async function privateAndAtMsg(e, context) {
     if (!isSendByAdmin(context)) {
       e.stopPropagation();
       replyMsg(context, global.config.bot.replys.debug, true);
+      return;
     }
     switch (context.message_type) {
       case 'private':
@@ -297,7 +298,6 @@ async function privateAndAtMsg(e, context) {
         );
         break;
     }
-    console.log(debugMsgDeleteBase64Content(context.message));
   }
 
   if (await commonHandle(e, context)) {
@@ -601,7 +601,7 @@ function doOCR(context) {
   for (const img of imgs) {
     ocr
       .default(img, lang)
-      .then(results => replyMsg(context, results.join('\n')))
+      .then(results => replyMsg(context, CQ.escape(results.join('\n'))))
       .catch(e => {
         replyMsg(context, 'OCR发生错误');
         console.error(`${global.getTime()} [error] OCR`);
@@ -846,7 +846,7 @@ function debugMsgDeleteBase64Content(msg) {
 
 function getUniversalImgURL(url = '') {
   return url
-    .replace('/gchat.qpic.cn/gchatpic_new/', '/c2cpicdw.qpic.cn/offpic_new/')
+    .replace('/c2cpicdw.qpic.cn/offpic_new/', '/gchat.qpic.cn/gchatpic_new/')
     .replace(/\/\d+\/+\d+-\d+-/, '/0/0-10000-')
     .replace(/\?.*$/, '');
 }

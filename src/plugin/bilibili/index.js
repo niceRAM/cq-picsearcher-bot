@@ -49,7 +49,7 @@ const getIdFromMsg = async msg => {
   let result = getIdFromNormalLink(msg);
   if (Object.values(result).some(id => id)) return result;
   if ((result = /((b23|acg)\.tv|bili2233.cn)\/[0-9a-zA-Z]+/.exec(msg))) {
-    return getIdFromShortLink(`http://${result[0]}`);
+    return getIdFromShortLink(`https://${result[0]}`);
   }
   return {};
 };
@@ -60,6 +60,18 @@ const markSended = (gid, ...ids) => gid && getCacheKeys(gid, ids).forEach(key =>
 
 async function bilibiliHandler(context) {
   const setting = global.config.bot.bilibili;
+  if (
+    !(
+      setting.despise ||
+      setting.getVideoInfo ||
+      setting.getDynamicInfo ||
+      setting.getArticleInfo ||
+      setting.getLiveRoomInfo
+    )
+  ) {
+    return;
+  }
+
   const { group_id: gid, message: msg } = context;
   const { url, title } =
     (() => {
