@@ -35,6 +35,9 @@
     "autoAddGroup": false,
     // 隐藏所有搜索结果的缩略图
     "hideImg": false,
+    // saucanao 得到 NSFW 结果时隐藏缩略图，可选 0~3，严格程度依次增加
+    // 0-不隐藏，1-隐藏明确为 NSFW 的缩略图，2-隐藏明确和可能为 NSFW 的缩略图，3-只显示明确为非 NSFW 的缩略图
+    "hideImgWhenSaucenaoNSFW": 0,
     // saucenao 得到低相似度结果时隐藏结果缩略图（包括 ascii2d 和 nhentai）
     "hideImgWhenLowAcc": false,
     // whatanime 得到 R18 结果时隐藏结果缩略图
@@ -51,6 +54,8 @@
     "useAscii2dWhenLowAcc": true,
     // 是否在 saucenao 搜索失败时自动使用 ascii2d
     "useAscii2dWhenFailed": true,
+    // 是否从本地上传图片到 ascii2d 搜索（否时使用 ascii2d 的 URL API）
+    "ascii2dLocalUpload": false,
     // saucenao 搜到本子时是否进一步去 nhentai 搜索
     "getDojinDetailFromNhentai": true,
     // 每名用户每日搜索次数限制
@@ -63,7 +68,9 @@
     // 需允许群内用户发起临时会话，或将机器人设置管理员
     // 警告：近期请勿启用，此功能很可能导致账号冻结，详情请关注 https://github.com/Mrs4s/go-cqhttp/issues/1338
     "pmSearchResultTemp": false,
-    // 若结果消息有多条，采用合并转发方式发送搜图结果（私聊和频道不生效）
+    // 在私聊中，若结果消息有多条，采用合并转发方式发送搜图结果（频道不生效）（有 bug，暂不建议使用，请等待 go-cqhttp 修复 #1556 #1557 #1557）
+    "privateForwardSearchResult": false,
+    // 在群组中，若结果消息有多条，采用合并转发方式发送搜图结果（频道不生效）
     "groupForwardSearchResult": false,
     // 大部分请求所使用的代理，支持 http(s):// 和 socks://
     "proxy": "",

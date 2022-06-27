@@ -2,6 +2,23 @@
 
 ## 2022
 
+### 06-25 v2.36.0
+
+- setu 发送链接使用回复而不是 @
+- 更新 @napi-rs/canvas 以支持一些旧版本 linux
+- 支持私聊合并转发搜图结果（需要 go-cqhttp ≥ v1.0.0-rc2，且目前因为有较多 bug 所以不推荐启用，建议等 go-cqhttp 修复）
+- 支持对 saucenao 的 NSFW 结果隐藏缩略图
+- 配置项变更
+  - A `bot.hideImgWhenSaucenaoNSFW`
+  - A `bot.privateForwardSearchResult`
+
+### 06-20 v2.35.0
+
+- 移除哔哩哔哩解析的视频搜索兜底以避免误触
+- 增加 ascii2d 本地上传搜索功能开关（默认关闭，使用在线 URL API），或许可以解决某些情况下的搜索问题吧，我也不好说（
+- 配置项变更
+  - A `bot.ascii2dLocalUpload`
+
 ### 06-10 v2.34.8
 
 - 修复 ascii2d 搜索失败问题
