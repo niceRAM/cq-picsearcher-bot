@@ -3,7 +3,7 @@ import nhentai from './nhentai';
 import getSource from './getSource';
 import pixivShorten from './urlShorten/pixiv';
 import logError from './logError';
-import { getCqImg64FromUrl } from './utils/image';
+import { getAntiShieldedCqImg64FromUrl, getCqImg64FromUrl } from './utils/image';
 import CQ from './CQcode';
 const Axios = require('./axiosProxy');
 
@@ -169,7 +169,7 @@ async function doSearch(imgURL, db, debug = false) {
           // 如果是本子
           const doujinName = jp_name || eng_name; // 本子名
           if (doujinName) {
-            if (global.config.bot.getDojinDetailFromNhentai) {
+            if (global.config.bot.getDoujinDetailFromNhentai) {
               const searchName = (eng_name || jp_name).replace('(English)', '').replace(/_/g, '/');
               const doujin = await nhentai(searchName).catch(e => {
                 logError(`${global.getTime()} [error] nhentai`);
@@ -233,6 +233,8 @@ async function doSearch(imgURL, db, debug = false) {
   };
 }
 
+const banedHosts = ['danbooru.donmai.us', 'konachan.com'];
+
 /**
  * 链接混淆
  *
@@ -240,13 +242,22 @@ async function doSearch(imgURL, db, debug = false) {
  * @returns
  */
 async function confuseURL(url) {
+  if (global.config.bot.handleBanedHosts) {
+    for (const host of banedHosts) {
+      if (url.includes(host)) {
+        return url.replace(/^https?:\/\//, '').replace(host, host.replace(/\./g, '.删'));
+      }
+    }
+  }
   return pixivShorten(url);
 }
 
 async function getShareText({ url, title, thumbnail, author_url, source }) {
   const texts = [title];
   if (thumbnail && !global.config.bot.hideImg) {
-    texts.push(await getCqImg64FromUrl(thumbnail));
+    const mode = global.config.bot.antiShielding;
+    if (mode > 0) texts.push(await getAntiShieldedCqImg64FromUrl(thumbnail, mode));
+    else texts.push(await getCqImg64FromUrl(thumbnail));
   }
   if (url) texts.push(await confuseURL(url));
   if (author_url) texts.push(`Author: ${await confuseURL(author_url)}`);
@@ -269,7 +280,7 @@ function getSearchResult(host, api_key, imgURL, db = 999) {
   return Axios.get(`${host}/search.php`, {
     params: {
       ...(api_key ? { api_key } : {}),
-      db: db,
+      db,
       output_type: 2,
       numres: 3,
       url: imgURL,

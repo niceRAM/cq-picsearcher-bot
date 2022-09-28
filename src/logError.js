@@ -1,11 +1,19 @@
+import _ from 'lodash';
+import { AxiosError } from 'axios';
+
 export default e => {
-  if (typeof e === 'object' && e.stack) {
-    console.error(e.stack);
-    delete e.stack;
-    if (e instanceof Error) {
-      console.error(JSON.stringify(e, Object.getOwnPropertyNames(e), 2));
-      return;
-    }
+  if (_.isObject(e) && e instanceof AxiosError) {
+    console.error(String(e));
+    console.error({
+      config: _.pick(e.config, ['method', 'url', 'data']),
+      response: {
+        ..._.pick(e.response, ['status', 'statusText']),
+        ...((e.response.headers['content-type'] || '').includes('application/json')
+          ? _.pick(e.response, ['data'])
+          : {}),
+      },
+    });
+    return;
   }
   console.error(e);
 };

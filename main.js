@@ -1,3 +1,4 @@
+import './src/utils/jimp.plugin';
 import { globalReg } from './src/utils/global';
 import { loadConfig } from './src/config';
 import { version } from './package.json';
@@ -23,6 +24,7 @@ import getGroupFile from './src/plugin/getGroupFile';
 import searchingMap from './src/searchingMap';
 import asyncMap from './src/utils/asyncMap';
 import { execUpdate } from './src/utils/checkUpdate';
+import { getAntiShieldedCqImg64FromUrl } from './src/utils/image';
 const ocr = require('./src/plugin/ocr');
 
 const bot = new CQWebSocket(global.config.cqws);
@@ -53,7 +55,7 @@ bot.on('request.friend', context => {
       });
     } catch (e) {
       console.error(`${global.getTime()} 加好友请求`);
-      console.error(e);
+      logError(e);
       approve = false;
     }
   }
@@ -149,6 +151,8 @@ setInterval(() => {
  * @type {import('cq-websocket').MessageEventListener}
  */
 async function commonHandle(e, context) {
+  const config = global.config.bot;
+
   // 忽略自己发给自己的消息
   if (context.user_id === context.self_id || context.user_id === context.self_tiny_id) return true;
 
@@ -158,9 +162,8 @@ async function commonHandle(e, context) {
   // 语言库
   if (corpus(context)) return true;
 
-  // 兼容其他机器人
-  const startChar = context.message.charAt(0);
-  if (startChar === '/' || startChar === '<') return true;
+  // 忽略指定正则的发言
+  if (config.regs.ignore && new RegExp(config.regs.ignore).test(context.message)) return true;
 
   // 通用指令
   if (context.message === '--help') {
@@ -177,12 +180,12 @@ async function commonHandle(e, context) {
   }
 
   // reminder
-  if (global.config.bot.reminder.enable) {
+  if (config.reminder.enable) {
     if (rmdHandler(context)) return true;
   }
 
   // setu
-  if (global.config.bot.setu.enable) {
+  if (config.setu.enable) {
     if (sendSetu(context)) return true;
   }
 
@@ -382,7 +385,7 @@ async function groupMsg(e, context) {
   // 进入或退出搜图模式
   const { group_id, user_id } = context;
 
-  if (new RegExp(global.config.bot.regs.searchModeOn).exec(context.message)) {
+  if (new RegExp(global.config.bot.regs.searchModeOn).test(context.message)) {
     // 进入搜图
     e.stopPropagation();
     if (
@@ -392,7 +395,7 @@ async function groupMsg(e, context) {
     ) {
       replyMsg(context, global.config.bot.replys.searchModeOn, true);
     } else replyMsg(context, global.config.bot.replys.searchModeAlreadyOn, true);
-  } else if (new RegExp(global.config.bot.regs.searchModeOff).exec(context.message)) {
+  } else if (new RegExp(global.config.bot.regs.searchModeOff).test(context.message)) {
     e.stopPropagation();
     // 退出搜图
     if (logger.smSwitch(group_id, user_id, false)) replyMsg(context, global.config.bot.replys.searchModeOff, true);
@@ -507,13 +510,18 @@ async function searchImg(context, customDB = -1) {
         const msgs = cache.map(msg => `${CQ.escape('[缓存]')} ${msg}`);
         const { groupForwardSearchResult, privateForwardSearchResult, pmSearchResult, pmSearchResultTemp } =
           global.config.bot;
+
+        const antiShieldingMode = global.config.bot.antiShielding;
+        const cqImg =
+          antiShieldingMode > 0 ? await getAntiShieldedCqImg64FromUrl(img.url, antiShieldingMode) : CQ.img(img.file);
+
         if (msgs.length > 1 && groupForwardSearchResult && context.message_type === 'group') {
           if (pmSearchResult && !pmSearchResultTemp) {
-            if (privateForwardSearchResult) await replyPrivateForwardMsgs(context, msgs, [CQ.img(img.file)]);
+            if (privateForwardSearchResult) await replyPrivateForwardMsgs(context, msgs, [cqImg]);
             else await replySearchMsgs(context, msgs);
-          } else await replyGroupForwardMsgs(context, msgs, [CQ.img(img.file)]);
+          } else await replyGroupForwardMsgs(context, msgs, [cqImg]);
         } else if (msgs.length > 1 && privateForwardSearchResult && context.message_type === 'private') {
-          await replyPrivateForwardMsgs(context, msgs, [CQ.img(img.file)]);
+          await replyPrivateForwardMsgs(context, msgs, [cqImg]);
         } else await replySearchMsgs(context, msgs);
         continue;
       }
@@ -614,7 +622,7 @@ function doOCR(context) {
       .catch(e => {
         replyMsg(context, 'OCR发生错误');
         console.error(`${global.getTime()} [error] OCR`);
-        console.error(e);
+        logError(e);
       });
   }
 }
@@ -636,7 +644,7 @@ function doAkhr(context) {
     const handleError = e => {
       replyMsg(context, '词条识别出现错误：\n' + e);
       console.error(`${global.getTime()} [error] Akhr`);
-      console.error(e);
+      logError(e);
     };
 
     for (const img of imgs) {

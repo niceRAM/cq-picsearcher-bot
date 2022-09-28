@@ -3,8 +3,8 @@ import * as Cheerio from 'cheerio';
 import FormData from 'form-data';
 import pixivShorten from './urlShorten/pixiv';
 import logError from './logError';
-import { retryAync } from './utils/retry';
-import { getCqImg64FromUrl } from './utils/image';
+import { retryAsync } from './utils/retry';
+import { getCqImg64FromUrl, getAntiShieldedCqImg64FromUrl } from './utils/image';
 import CQ from './CQcode';
 const Axios = require('./axiosProxy');
 
@@ -22,7 +22,7 @@ async function doSearch(url, snLowAcc = false) {
   if (host === 'ascii2d.net') host = `https://${host}`;
   else if (!/^https?:\/\//.test(host)) host = `http://${host}`;
   const callApi = global.config.bot.ascii2dLocalUpload ? callAscii2dUploadApi : callAscii2dUrlApi;
-  const { colorURL, colorDetail } = await retryAync(
+  const { colorURL, colorDetail } = await retryAsync(
     async () => {
       const ret = await callApi(host, url);
       const colorURL = ret.request.res.responseUrl;
@@ -98,7 +98,9 @@ async function getResult({ url, title, author, thumbnail, author_url }, snLowAcc
   if (!url) return { success: false, result: '由未知错误导致搜索失败' };
   const texts = [CQ.escape(`「${title}」/「${author}」`)];
   if (thumbnail && !(global.config.bot.hideImg || (snLowAcc && global.config.bot.hideImgWhenLowAcc))) {
-    texts.push(await getCqImg64FromUrl(thumbnail));
+    const mode = global.config.bot.antiShielding;
+    if (mode > 0) texts.push(await getAntiShieldedCqImg64FromUrl(thumbnail, mode));
+    else texts.push(await getCqImg64FromUrl(thumbnail));
   }
   texts.push(CQ.escape(pixivShorten(url)));
   if (author_url) texts.push(`Author: ${CQ.escape(pixivShorten(author_url))}`);

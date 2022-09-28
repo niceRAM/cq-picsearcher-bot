@@ -8,7 +8,7 @@ import { getVideoInfo } from './video';
 import { getDynamicInfo } from './dynamic';
 import { getArticleInfo } from './article';
 import { getLiveRoomInfo } from './live';
-import { retryAync } from '../../utils/retry';
+import { retryAsync } from '../../utils/retry';
 import './push';
 
 const cache = new NodeCache({ stdTTL: 3 * 60 });
@@ -29,7 +29,7 @@ const getIdFromNormalLink = link => {
 };
 
 const getIdFromShortLink = shortLink => {
-  return retryAync(
+  return retryAsync(
     () =>
       head(shortLink, {
         maxRedirects: 0,
@@ -101,10 +101,10 @@ async function bilibiliHandler(context) {
   if (gid && getCacheKeys(gid, Object.values(param)).some(key => cache.has(key))) return;
 
   if (setting.getVideoInfo && (aid || bvid)) {
-    const { reply, ids } = await getVideoInfo({ aid, bvid });
-    if (reply) {
-      global.replyMsg(context, reply);
-      markSended(gid, ...ids);
+    const { text, ids, reply } = await getVideoInfo({ aid, bvid });
+    if (text) {
+      global.replyMsg(context, text, false, !!reply);
+      if (ids && ids.length) markSended(gid, ...ids);
     }
     return true;
   }
@@ -112,7 +112,7 @@ async function bilibiliHandler(context) {
   if (setting.getDynamicInfo && dyid) {
     const reply = await getDynamicInfo(dyid);
     if (reply) {
-      global.replyMsg(context, reply);
+      global.replyMsg(context, reply.text, false, !!reply.reply);
       markSended(gid, dyid);
     }
     return true;

@@ -1,45 +1,26 @@
-import _, { random } from 'lodash';
+import _ from 'lodash';
 import { getLocalReverseProxyURL } from './pximg';
 import CQ from '../CQcode';
 import { URL } from 'url';
 import NamedRegExp from 'named-regexp-groups';
-import '../utils/jimp.plugin';
 import Jimp from 'jimp';
 import urlShorten from '../urlShorten';
 import logger from '../logger';
+import { imgAntiShielding } from '../utils/imgAntiShielding';
+import logError from '../logError';
 const Axios = require('../axiosProxy');
 
 const API_URL = 'https://api.lolicon.app/setu/v2';
 
 const PIXIV_404 = Symbol('Pixiv image 404');
 
-async function imgAntiShielding(url) {
+async function dlImgAndAntiShielding(url) {
   const setting = global.config.bot.setu;
   const proxy = setting.pximgProxy.trim();
   const img = await Jimp.read(
     proxy ? Buffer.from(await Axios.get(url, { responseType: 'arraybuffer' }).then(r => r.data)) : url
   );
-
-  switch (Number(global.config.bot.setu.antiShielding)) {
-    case 1:
-      const [w, h] = [img.getWidth(), img.getHeight()];
-      const pixels = [
-        [0, 0],
-        [w - 1, 0],
-        [0, h - 1],
-        [w - 1, h - 1],
-      ];
-      for (const [x, y] of pixels) {
-        img.setPixelColor(Jimp.rgbaToInt(random(255), random(255), random(255), 1), x, y);
-      }
-      break;
-
-    case 2:
-      img.simpleRotate(90);
-      break;
-  }
-
-  return (await img.getBase64Async(Jimp.AUTO)).split(',')[1];
+  return await imgAntiShielding(img, global.config.bot.setu.antiShielding);
 }
 
 //  酷Q无法以 base64 发送大于 4M 的图片
@@ -49,13 +30,13 @@ function checkBase64RealSize(base64) {
 
 async function getAntiShieldingBase64(url, fallbackUrl) {
   try {
-    const origBase64 = await imgAntiShielding(url);
+    const origBase64 = await dlImgAndAntiShielding(url);
     if (checkBase64RealSize(origBase64)) return origBase64;
   } catch (error) {
     // 原图过大
   }
   if (!fallbackUrl) return;
-  const m1200Base64 = await imgAntiShielding(fallbackUrl);
+  const m1200Base64 = await dlImgAndAntiShielding(fallbackUrl);
   if (checkBase64RealSize(m1200Base64)) return m1200Base64;
 }
 
@@ -159,11 +140,11 @@ function sendSetu(context, reply = true) {
       const base64 =
         !privateR18 &&
         isGroupMsg &&
-        setting.antiShielding &&
+        setting.antiShielding > 0 &&
         (await getAntiShieldingBase64(url, fallbackUrl).catch(e => {
           console.error(`${global.getTime()} [error] anti shielding`);
           console.error(url);
-          console.error(e);
+          logError(e);
           if (String(e).includes('Could not find MIME for Buffer') || String(e).includes('status code 404')) {
             return PIXIV_404;
           }
@@ -194,14 +175,14 @@ function sendSetu(context, reply = true) {
           })
           .catch(e => {
             console.error(`${global.getTime()} [error] delete msg`);
-            console.error(e);
+            logError(e);
           });
       }
       success = true;
     })
     .catch(e => {
       console.error(`${global.getTime()} [error]`);
-      console.error(e);
+      logError(e);
       global.replyMsg(context, replys.setuError, false, reply);
     })
     .finally(() => {
