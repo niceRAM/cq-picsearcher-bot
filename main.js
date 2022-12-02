@@ -1,3 +1,4 @@
+import './src/utils/jimp.plugin';
 import { globalReg } from './src/utils/global';
 import { loadConfig } from './src/config';
 import { version } from './package.json';
@@ -23,6 +24,7 @@ import getGroupFile from './src/plugin/getGroupFile';
 import searchingMap from './src/searchingMap';
 import asyncMap from './src/utils/asyncMap';
 import { execUpdate } from './src/utils/checkUpdate';
+import { getAntiShieldedCqImg64FromUrl } from './src/utils/image';
 const ocr = require('./src/plugin/ocr');
 
 const bot = new CQWebSocket(global.config.cqws);
@@ -40,6 +42,8 @@ globalReg({
   sendGroupMsg,
 });
 
+emitter.emit('botCreated');
+
 // 好友请求
 bot.on('request.friend', context => {
   let approve = global.config.bot.autoAddFriend;
@@ -53,7 +57,7 @@ bot.on('request.friend', context => {
       });
     } catch (e) {
       console.error(`${global.getTime()} 加好友请求`);
-      console.error(e);
+      logError(e);
       approve = false;
     }
   }
@@ -149,6 +153,8 @@ setInterval(() => {
  * @type {import('cq-websocket').MessageEventListener}
  */
 async function commonHandle(e, context) {
+  const config = global.config.bot;
+
   // 忽略自己发给自己的消息
   if (context.user_id === context.self_id || context.user_id === context.self_tiny_id) return true;
 
@@ -158,9 +164,8 @@ async function commonHandle(e, context) {
   // 语言库
   if (corpus(context)) return true;
 
-  // 兼容其他机器人
-  const startChar = context.message.charAt(0);
-  if (startChar === '/' || startChar === '<') return true;
+  // 忽略指定正则的发言
+  if (config.regs.ignore && new RegExp(config.regs.ignore).test(context.message)) return true;
 
   // 通用指令
   if (context.message === '--help') {
@@ -177,12 +182,12 @@ async function commonHandle(e, context) {
   }
 
   // reminder
-  if (global.config.bot.reminder.enable) {
+  if (config.reminder.enable) {
     if (rmdHandler(context)) return true;
   }
 
   // setu
-  if (global.config.bot.setu.enable) {
+  if (config.setu.enable) {
     if (sendSetu(context)) return true;
   }
 
@@ -323,6 +328,10 @@ async function privateAndAtMsg(e, context) {
             .map(({ file, url }) => `[CQ:image,file=${CQ.escape(file, true)},url=${CQ.escape(url, true)}]`)
             .join('');
           context = { ...context, message: context.message.replace(/^\[CQ:reply,id=-?\d+.*?\]/, rMsg) };
+        } else {
+          // 获取不到原消息，忽略
+          e.stopPropagation();
+          return;
         }
       }
     } catch (error) {}
@@ -382,7 +391,7 @@ async function groupMsg(e, context) {
   // 进入或退出搜图模式
   const { group_id, user_id } = context;
 
-  if (new RegExp(global.config.bot.regs.searchModeOn).exec(context.message)) {
+  if (new RegExp(global.config.bot.regs.searchModeOn).test(context.message)) {
     // 进入搜图
     e.stopPropagation();
     if (
@@ -392,7 +401,7 @@ async function groupMsg(e, context) {
     ) {
       replyMsg(context, global.config.bot.replys.searchModeOn, true);
     } else replyMsg(context, global.config.bot.replys.searchModeAlreadyOn, true);
-  } else if (new RegExp(global.config.bot.regs.searchModeOff).exec(context.message)) {
+  } else if (new RegExp(global.config.bot.regs.searchModeOff).test(context.message)) {
     e.stopPropagation();
     // 退出搜图
     if (logger.smSwitch(group_id, user_id, false)) replyMsg(context, global.config.bot.replys.searchModeOff, true);
@@ -507,13 +516,18 @@ async function searchImg(context, customDB = -1) {
         const msgs = cache.map(msg => `${CQ.escape('[缓存]')} ${msg}`);
         const { groupForwardSearchResult, privateForwardSearchResult, pmSearchResult, pmSearchResultTemp } =
           global.config.bot;
+
+        const antiShieldingMode = global.config.bot.antiShielding;
+        const cqImg =
+          antiShieldingMode > 0 ? await getAntiShieldedCqImg64FromUrl(img.url, antiShieldingMode) : CQ.img(img.file);
+
         if (msgs.length > 1 && groupForwardSearchResult && context.message_type === 'group') {
           if (pmSearchResult && !pmSearchResultTemp) {
-            if (privateForwardSearchResult) await replyPrivateForwardMsgs(context, msgs, [CQ.img(img.file)]);
+            if (privateForwardSearchResult) await replyPrivateForwardMsgs(context, msgs, [cqImg]);
             else await replySearchMsgs(context, msgs);
-          } else await replyGroupForwardMsgs(context, msgs, [CQ.img(img.file)]);
+          } else await replyGroupForwardMsgs(context, msgs, [cqImg]);
         } else if (msgs.length > 1 && privateForwardSearchResult && context.message_type === 'private') {
-          await replyPrivateForwardMsgs(context, msgs, [CQ.img(img.file)]);
+          await replyPrivateForwardMsgs(context, msgs, [cqImg]);
         } else await replySearchMsgs(context, msgs);
         continue;
       }
@@ -614,7 +628,7 @@ function doOCR(context) {
       .catch(e => {
         replyMsg(context, 'OCR发生错误');
         console.error(`${global.getTime()} [error] OCR`);
-        console.error(e);
+        logError(e);
       });
   }
 }
@@ -636,7 +650,7 @@ function doAkhr(context) {
     const handleError = e => {
       replyMsg(context, '词条识别出现错误：\n' + e);
       console.error(`${global.getTime()} [error] Akhr`);
-      console.error(e);
+      logError(e);
     };
 
     for (const img of imgs) {
@@ -677,7 +691,7 @@ function hasImage(msg) {
  *
  * @param {string} message 消息
  */
-function sendMsg2Admin(message) {
+export function sendMsg2Admin(message) {
   const admin = global.config.bot.admin;
   if (bot.isReady() && admin > 0) {
     bot('send_private_msg', {
@@ -695,7 +709,7 @@ function sendMsg2Admin(message) {
  * @param {boolean} at 是否at发送者
  * @param {boolean} reply 是否使用回复形式
  */
-async function replyMsg(context, message, at = false, reply = false) {
+export async function replyMsg(context, message, at = false, reply = false) {
   if (!bot.isReady() || typeof message !== 'string' || message.length === 0) return;
   if (context.message_type === 'group' && typeof context.group_id === 'string' && context.group_id.includes('_')) {
     const [guild_id, channel_id] = context.group_id.split('_');
@@ -771,7 +785,7 @@ async function replyMsg(context, message, at = false, reply = false) {
  * @param {*} context 消息对象
  * @param {string[]} msgs 回复内容
  */
-async function replySearchMsgs(context, msgs) {
+export async function replySearchMsgs(context, msgs) {
   msgs = msgs.filter(msg => msg && typeof msg === 'string');
   if (msgs.length === 0) return;
   //  是否私聊回复
@@ -798,7 +812,7 @@ async function replySearchMsgs(context, msgs) {
  * @param {*} ctx 消息上下文
  * @param {string[]} msgs 消息
  */
-function replyPrivateForwardMsgs(ctx, msgs, prependMsgs = []) {
+export function replyPrivateForwardMsgs(ctx, msgs, prependMsgs = []) {
   const messages = createForwardNodes(ctx, [...prependMsgs, ...msgs]);
   if (global.config.bot.debug) {
     console.log(`${global.getTime()} 回复私聊合并转发消息 qq=${ctx.user_id}`);
@@ -816,7 +830,7 @@ function replyPrivateForwardMsgs(ctx, msgs, prependMsgs = []) {
  * @param {*} ctx 消息上下文
  * @param {string[]} msgs 消息
  */
-function replyGroupForwardMsgs(ctx, msgs, prependMsgs = []) {
+export function replyGroupForwardMsgs(ctx, msgs, prependMsgs = []) {
   const messages = createForwardNodes(ctx, [...prependMsgs, ...msgs]);
   if (global.config.bot.debug) {
     console.log(`${global.getTime()} 回复群组合并转发消息 group=${ctx.group_id} qq=${ctx.user_id}`);
@@ -848,7 +862,7 @@ function createForwardNodes(ctx, msgs, prependCtxMsg = false) {
   return messages;
 }
 
-function sendGroupMsg(group_id, message) {
+export function sendGroupMsg(group_id, message) {
   if (global.config.bot.debug) {
     console.log(`${global.getTime()} 发送群组消息 group=${group_id}`);
     console.log(debugMsgDeleteBase64Content(message));
@@ -868,7 +882,7 @@ function getRand() {
   return rand.floatBetween(0, 100);
 }
 
-function parseArgs(str, enableArray = false, _key = null) {
+export function parseArgs(str, enableArray = false, _key = null) {
   const m = minimist(
     str
       .replace(/(--[\w-]+)(?:\s*)(\[CQ:)/g, '$1 $2')

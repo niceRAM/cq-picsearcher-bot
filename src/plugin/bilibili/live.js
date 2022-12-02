@@ -1,7 +1,8 @@
+import _ from 'lodash';
 import CQ from '../../CQcode';
 import logError from '../../logError';
 import humanNum from '../../utils/humanNum';
-import { retryGet } from '../../utils/retry';
+import { retryGet, retryPost } from '../../utils/retry';
 
 export const getLiveRoomInfo = id =>
   retryGet(`https://api.live.bilibili.com/xlive/web-room/v1/index/getInfoByRoom?room_id=${id}`, { timeout: 10000 })
@@ -32,16 +33,16 @@ export const getLiveRoomInfo = id =>
       return null;
     });
 
+/** @deprecated 需要鉴权 */
 export const getUserLiveData = async uid => {
   try {
     const {
       data: {
-        data: {
-          name,
-          live_room: { liveStatus, url, title, cover },
-        },
+        data: { name, live_room },
       },
     } = await retryGet(`https://api.bilibili.com/x/space/acc/info?mid=${uid}`, { timeout: 10000 });
+    if (!live_room) return null;
+    const { liveStatus, url, title, cover } = live_room;
     return {
       status: liveStatus,
       name,
@@ -53,5 +54,28 @@ export const getUserLiveData = async uid => {
     logError(`${global.getTime()} [error] bilibili live data ${uid}`);
     logError(e);
     return null;
+  }
+};
+
+export const getUsersLiveData = async uids => {
+  try {
+    const {
+      data: { data },
+    } = await retryPost(
+      'https://api.live.bilibili.com/room/v1/Room/get_status_info_by_uids',
+      { uids },
+      { timeout: 10000 }
+    );
+    return _.mapValues(data, ({ uname, title, room_id, live_status, cover_from_user }) => ({
+      status: live_status,
+      name: uname,
+      url: `https://live.bilibili.com/${room_id}`,
+      title,
+      cover: cover_from_user,
+    }));
+  } catch (e) {
+    logError(`${global.getTime()} [error] bilibili live data ${uids}`);
+    logError(e);
+    return {};
   }
 };

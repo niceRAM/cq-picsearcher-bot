@@ -5,7 +5,7 @@
   // momocow/node-cq-websocket 配置，请参考 https://yww.uy/5gGAq9
   "cqws": {
     "host": "127.0.0.1",
-    "port": 6700,
+    "port": 8080,
     "enableAPI": true,
     "enableEvent": true,
     "accessToken": "",
@@ -33,6 +33,13 @@
     "addFriendAnswers": [],
     // 是否自动同意入群申请（false 则忽略，但不会拒绝，并且可以用命令手动允许，详情请查看“wiki-配置文件说明”）
     "autoAddGroup": false,
+    // 图片反和谐方式，0：关闭，1：轻微修改，2：逆时针旋转90°，4：顺时针旋转90°，8：旋转180°
+    // 可以进行组合，例如 3 则表示 轻微修改 + 逆时针旋转90° (1+2)；旋转操作之间不能组合，只会执行一个
+    "antiShielding": 0,
+    // 发送搜图结果时处理红链以免被屏蔽
+    "handleBannedHosts": true,
+    // 使用传统方法处理红链
+    "handleBannedHostsWithLegacyMethod": false,
     // 隐藏所有搜索结果的缩略图
     "hideImg": false,
     // saucanao 得到 NSFW 结果时隐藏缩略图，可选 0~3，严格程度依次增加
@@ -56,8 +63,8 @@
     "useAscii2dWhenFailed": true,
     // 是否从本地上传图片到 ascii2d 搜索（否时使用 ascii2d 的 URL API）
     "ascii2dLocalUpload": false,
-    // saucenao 搜到本子时是否进一步去 nhentai 搜索
-    "getDojinDetailFromNhentai": true,
+    // saucenao 搜到本子时是否进一步去 nHentai 搜索（因 nHentai 上了 cf 五秒盾导致无法搜索，默认禁用）
+    "getDoujinDetailFromNhentai": false,
     // 每名用户每日搜索次数限制
     "searchLimit": 30,
     // 搜图模式超时时间（秒），0 则无超时（不推荐，使用者不清楚容易造成困惑）
@@ -68,7 +75,7 @@
     // 需允许群内用户发起临时会话，或将机器人设置管理员
     // 警告：近期请勿启用，此功能很可能导致账号冻结，详情请关注 https://github.com/Mrs4s/go-cqhttp/issues/1338
     "pmSearchResultTemp": false,
-    // 在私聊中，若结果消息有多条，采用合并转发方式发送搜图结果（频道不生效）（有 bug，暂不建议使用，请等待 go-cqhttp 修复 #1556 #1557 #1557）
+    // 在私聊中，若结果消息有多条，采用合并转发方式发送搜图结果（频道不生效）（有 bug，暂不建议使用，请等待 go-cqhttp 修复 #1556 #1557 #1558）
     "privateForwardSearchResult": false,
     // 在群组中，若结果消息有多条，采用合并转发方式发送搜图结果（频道不生效）
     "groupForwardSearchResult": false,
@@ -106,7 +113,8 @@
       "enable": false,
       // APIKEY（已弃用，不再需要）
       "apikey": "",
-      // 反和谐方式（0：关闭，1：轻微修改，2：旋转）
+      // 图片反和谐方式，0：关闭，1：轻微修改，2：逆时针旋转90°，4：顺时针旋转90°，8：旋转180°
+      // 可以进行组合，例如 3 则表示 轻微修改 + 逆时针旋转90° (1+2)，旋转操作只会执行一次
       "antiShielding": 0,
       // 是否允许私聊使用
       "allowPM": true,
@@ -121,7 +129,7 @@
       // 是否发送图片链接（P站作品地址、原图镜像地址）
       "sendUrls": true,
       // 原图镜像地址，发送图片时一起发送的在线反向代理的原图地址，设置为空数组则不追加，支持占位符同上
-      "sendPximgProxys": ["https://i.pixiv.re/"],
+      "sendPximgProxies": [],
       // 对原图镜像地址进行短链接处理，可选值: ["oy.mk", "yww.uy"]，留空 "" 则不处理。
       "shortenPximgProxy": "",
       // 是否发送 master1200 大小的图片，以节省流量或加快发送速度，关闭时将发送原图
@@ -142,7 +150,7 @@
       "whiteCd": 0,
       // 白名单群组内发送后这么多秒自动撤回（0 则不撤回，-1 为发送闪照）
       "whiteDeleteTime": 0,
-      // r18 是否只发送地址不发送图片（如果开启，建议设置 `sendPximgProxys`）
+      // r18 是否只发送地址不发送图片（如果开启，建议设置 `sendPximgProxies`）
       "r18OnlyUrl": {
         "private": false, // 私聊
         "group": false, // 群聊
@@ -150,7 +158,7 @@
         "guild": false // 频道
       },
       // r18 图片只通过私聊发送（私聊不会被和谐，因此不会进行反和谐）
-      "r18OnlyPrivate": true,
+      "r18OnlyPrivate": false,
       // 允许临时会话发送 r18 结果，用法同 `bot.pmSearchResultTemp`
       "r18OnlyPrivateAllowTemp": false,
       // 只允许在白名单群组中发送 r18 setu
@@ -160,6 +168,8 @@
     },
     // 正则表达式相关设置
     "regs": {
+      // 忽略符合该正则表达式的发言，可以避免响应其他机器人的指令，留空则不忽略（优先级低于语言库）
+      "ignore": "",
       // 开启搜图模式
       "searchModeOn": "^竹竹搜[图圖]$",
       // 关闭搜图模式
@@ -258,7 +268,9 @@
       // 特别地，该配置项内部的注释不会被清除，以方便对 uid 或 gid 进行备注
       "push": {},
       // 推送检测间隔（秒），最小为 30
-      "pushCheckInterval": 60
+      "pushCheckInterval": 60,
+      // 当发送者撤回原消息时是否同步撤回解析消息
+      "respondRecall": true
     },
     // 语言库（自动回复），请查看“wiki-附加功能-语言库（自动回复）”以了解更多
     "corpus": []

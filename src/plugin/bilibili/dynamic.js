@@ -41,6 +41,15 @@ const parseDynamicCard = ({
 };
 
 const dynamicCard2msg = async (card, forPush = false) => {
+  if (!card) {
+    if (forPush) return null;
+    return {
+      type: -1,
+      text: '该动态已被删除',
+      reply: true,
+    };
+  }
+
   const parsedCard = parseDynamicCard(card);
   const {
     dyid,
@@ -57,7 +66,10 @@ const dynamicCard2msg = async (card, forPush = false) => {
   if (type in formatters) lines.push(...(await formatters[type](parsedCard, forPush)));
   else lines.push(`未知的动态类型 type=${type}`);
 
-  return lines.join('\n').trim();
+  return {
+    type,
+    text: lines.join('\n').trim(),
+  };
 };
 
 export const getDynamicInfo = async id => {
@@ -90,15 +102,14 @@ export const getUserNewDynamicsInfo = async uid => {
     } = await retryGet(`https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=${uid}`, {
       timeout: 10000,
     });
-    const curDids = _.map(cards, 'desc.dynamic_id_str');
-    // 拉到的有问题
-    if (!curDids.length) {
-      logError(`${global.getTime()} [error] bilibili get user dynamics info ${uid}: no dynamic`);
-      logError(JSON.stringify(cards));
-      return;
-    }
-    // 拉到的存起来
+    // 过滤掉太旧的动态
     const { pushCheckInterval } = global.config.bot.bilibili;
+    const earliestTime = Date.now() / 1000 - pushCheckInterval * 10;
+    const curDids = _.map(
+      cards.filter(({ desc: { timestamp } }) => timestamp > earliestTime),
+      'desc.dynamic_id_str'
+    );
+    // 拉到的存起来
     const ttl = Math.max(CACHE_MIN_TTL, pushCheckInterval * 10);
     const newDids = new Set(curDids.filter(did => !sendedDynamicIdCache.get(did)));
     curDids.forEach(did => sendedDynamicIdCache.set(did, true, ttl));
@@ -106,6 +117,8 @@ export const getUserNewDynamicsInfo = async uid => {
     const isFirstSending = !firstSendingFlagCache.get(uid);
     firstSendingFlagCache.set(uid, true, ttl);
     if (isFirstSending) return;
+    // 没动态
+    if (!newDids.size) return;
     // 发
     return (
       await Promise.all(
@@ -126,11 +139,13 @@ const formatters = {
   1: async ({ origin, card }, forPush = false) => [
     CQ.escape(purgeLinkInText(card.item.content.trim())),
     '',
-    (await dynamicCard2msg(origin, forPush).catch(e => {
-      logError(`${global.getTime()} [error] bilibili parse original dynamic`, card);
-      logError(e);
-      return null;
-    })) || `https://t.bilibili.com/${origin.dynamic_id_str}`,
+    (
+      await dynamicCard2msg(origin, forPush).catch(e => {
+        logError(`${global.getTime()} [error] bilibili parse original dynamic`, card);
+        logError(e);
+        return null;
+      })
+    ).text || `https://t.bilibili.com/${origin.dynamic_id_str}`,
   ],
 
   // 图文动态

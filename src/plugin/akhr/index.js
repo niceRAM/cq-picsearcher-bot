@@ -39,9 +39,9 @@ function getTagCharsetExcludeRegExp() {
 async function pullData() {
   const [charData, charNameData, tagData] = _.map(
     await Promise.all([
-      get('https://cdn.jsdelivr.net/gh/arkntools/arknights-toolbox@master/src/data/character.json'),
-      get('https://cdn.jsdelivr.net/gh/arkntools/arknights-toolbox@master/src/locales/cn/character.json'),
-      get('https://cdn.jsdelivr.net/gh/arkntools/arknights-toolbox@master/src/locales/cn/tag.json'),
+      get('https://fastly.jsdelivr.net/gh/arkntools/arknights-toolbox@master/src/data/character.json'),
+      get('https://fastly.jsdelivr.net/gh/arkntools/arknights-toolbox@master/src/locales/cn/character.json'),
+      get('https://fastly.jsdelivr.net/gh/arkntools/arknights-toolbox@master/src/locales/cn/tag.json'),
     ]),
     'data'
   );
@@ -100,7 +100,7 @@ async function init() {
     setUpdateDataInterval();
   } catch (e) {
     console.error(`${global.getTime()} akhr 初始化`);
-    console.error(e);
+    logError(e);
   }
 }
 
@@ -134,24 +134,9 @@ function getCombinations(tags) {
   return result;
 }
 
-function getResultText(words) {
-  const tags = _.uniq(_.filter(words, w => w in AKDATA.data).slice(0, 6));
-  const combs = getCombinations(tags);
-  let text = `识别词条：${tags.join('、')}`;
-  for (const r of combs) {
-    text += `\n\n【${r.comb.join(' ')}】`;
-    const tmp = [];
-    for (const i of r.chars) {
-      const char = getChar(i);
-      tmp.push(`(${char.r})${char.n}`);
-    }
-    text += tmp.join(' ');
-  }
-  return text;
-}
-
 const ERROR_MAP = {
   千员: '干员',
+  于员: '干员',
   滅速: '減速',
   枳械: '机械',
   冫口了: '治疗',
@@ -187,6 +172,5 @@ export default {
   init,
   isDataReady,
   updateData,
-  getResultText,
   getResultImg,
 };

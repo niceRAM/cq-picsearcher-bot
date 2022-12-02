@@ -10,6 +10,7 @@ const CONFIG_PATH = resolve(__dirname, '../config.jsonc');
 const DEFAULT_CONFIG_PATH = resolve(__dirname, '../config.default.jsonc');
 
 const migration = (obj, oldKey, newKey) => {
+  if (!obj) return;
   if (oldKey in obj && !(newKey in obj)) {
     obj[newKey] = obj[oldKey];
     delete obj[oldKey];
@@ -93,6 +94,9 @@ export function loadConfig(init = false) {
   }
   migration(conf.bot, 'saucenaoHideImgWhenLowAcc', 'hideImgWhenLowAcc');
   migration(conf.bot, 'antiBiliMiniApp', 'bilibili');
+  migration(conf.bot, 'getDojinDetailFromNhentai', 'getDoujinDetailFromNhentai');
+  migration(conf.bot, 'handleBanedHosts', 'handleBannedHosts');
+  migration(_.get(conf, 'bot.setu'), 'sendPximgProxys', 'sendPximgProxies');
 
   recursiveCopy(conf, dConf, confCmt, dConfCmt);
   if (dConfCmt) writeFileSync(CONFIG_PATH, cjson.stringify(dConfCmt, null, 2));
