@@ -2,6 +2,39 @@
 
 ## 2022
 
+### 12-17 v3.1.2
+
+- 修复 ChatGPT 黑白名单不生效问题
+- 优化 ChatGPT 回答多余字符过滤
+
+### 12-17 v3.1.1
+
+- 修复 ChatGPT prompt 可能含有非文本内容的问题
+
+### 12-17 v3.1.0
+
+- 修复 puppeteer 可能在 linux 中无法启动的问题
+- 新增 ChatGPT 功能
+- 配置项变更
+  - A `bot.chatgpt`
+
+### 12-11 v3.0.0
+
+注意：本次升级请勿使用 `--update-cqps` 指令，而是手动执行以下命令
+
+```bash
+npm run kill # 如果你的 pm2 上存在其他程序不想 kill，也可以执行 npx pm2 delete cqps
+npm run update
+```
+
+- BREAKING CHANGE: 项目完全转换为 esm，仅支持 node 14 及以上版本
+- 处理 ascii2d 结果的红链
+- 哔哩哔哩动态推送放宽旧动态的时间判定，以免审核时间过长导致被过滤而漏推送
+- 支持使用 Puppeteer 绕过 cf js challenge 以解决 ascii2d 和 nHentai 的请求问题（见“wiki-配置文件说明-使用 Puppeteer 绕过 cf js challenge”）
+- 配置项变更
+  - A `bot.ascii2dUsePuppeteer`
+  - A `bot.nHentaiUsePuppeteer`
+
 ### 11-19 v2.42.0
 
 - 将 `pixiv.net` 加入红链处理名单（否则有概率被屏蔽）

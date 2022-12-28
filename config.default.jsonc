@@ -63,8 +63,12 @@
     "useAscii2dWhenFailed": true,
     // 是否从本地上传图片到 ascii2d 搜索（否时使用 ascii2d 的 URL API）
     "ascii2dLocalUpload": false,
-    // saucenao 搜到本子时是否进一步去 nHentai 搜索（因 nHentai 上了 cf 五秒盾导致无法搜索，默认禁用）
+    // 是否使用 Puppeteer 请求 ascii2d 以绕过 cf js challenge，详情请看“wiki-配置文件说明-使用 Puppeteer 绕过 cf js challenge”（启用时 ascii2dLocalUpload 配置将不生效）
+    "ascii2dUsePuppeteer": false,
+    // saucenao 搜到本子时是否进一步去 nHentai 搜索（可能会触发 cf js challenge 导致无法搜索，默认禁用，可尝试启用）
     "getDoujinDetailFromNhentai": false,
+    // 是否使用 Puppeteer 请求 nHentai 以绕过 cf js challenge，需要同时启用 `getDoujinDetailFromNhentai`，详情请看“wiki-配置文件说明-使用 Puppeteer 绕过 cf js challenge”
+    "nHentaiUsePuppeteer": false,
     // 每名用户每日搜索次数限制
     "searchLimit": 30,
     // 搜图模式超时时间（秒），0 则无超时（不推荐，使用者不清楚容易造成困惑）
@@ -87,7 +91,7 @@
     "checkUpdate": 24,
     // 是否忽略QQ官方机器人 (2854196300 ≤ qq ≤ 2854216399)
     "ignoreOfficialBot": true,
-    // Canvas 库选择，详见 wiki
+    // Canvas 库选择，可选值 ["auto", "@napi-rs/canvas", "canvas"] 详见 wiki
     "canvasLibrary": "auto",
     // 搜图结果缓存，开启可节约 API 调用
     "cache": {
@@ -273,7 +277,31 @@
       "respondRecall": true
     },
     // 语言库（自动回复），请查看“wiki-附加功能-语言库（自动回复）”以了解更多
-    "corpus": []
+    "corpus": [],
+    // ChatGPT
+    "chatgpt": {
+      // 是否启用
+      "enable": false,
+      // 触发功能的正则表达式，第一个捕获组内的内容会被当做 prompt 提交，会去除首尾空格
+      // 例如默认配置的意思是，以 chatgpt 开头的消息会触发功能，chatgpt 后面的文字被提取为 prompt
+      "regexp": "^chatgpt([\\s\\S]+)",
+      // 使用的模型
+      "model": "text-davinci-003",
+      // 回答的最大 token 数，请填根据模型的最大 token 数填写一个合理的值或保持默认
+      // 实际调用具有容错机制，如果问题过长触发超过模型最大 token 数错误，会自动降低 max_tokens 并重新请求
+      "maxTokens": 3072,
+      // 自定义参数，如果除了 model 和 max_tokens 还想添加参数可以写到这里面
+      // https://beta.openai.com/docs/api-reference/completions/create
+      "additionParams": {},
+      // OpenAI APIKey
+      "apiKey": "",
+      // OpenAI 组织 ID，组织计费用，个人留空即可
+      "organization": "",
+      // 群组黑名单
+      "blackGroup": [],
+      // 群组白名单（设置后将只允许白名单群组使用）
+      "whiteGroup": []
+    }
   },
   "ctmdgaApiKey": "",
   // saucenao 自定义 host，格式：[protocol://]host[:port]
